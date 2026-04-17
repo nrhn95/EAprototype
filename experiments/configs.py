@@ -178,21 +178,59 @@ DIVERSITY_CONFIGS: dict[str, PSOConfig] = {
 }
 
 # ─────────────────────────────────────────────────────────────────────────────
+# GA experiment suites
+# Each suite varies a single GA component while holding everything else at its
+# default so the effect of that component can be isolated over 30 seeds.
+# ─────────────────────────────────────────────────────────────────────────────
+from src.optimization.ga import GAConfig  # noqa: E402  (placed here to avoid circular)
+
+# 11. GA — Mutation operator  (guideline e: ≥2 mutation techniques)
+GA_MUTATION_CONFIGS: dict[str, GAConfig] = {
+    "uniform":    GAConfig(mutation="uniform"),
+    "nonuniform": GAConfig(mutation="nonuniform", nonuniform_b=2.0),
+}
+
+# 12. GA — Crossover operator  (guideline e: ≥2 recombination techniques)
+GA_CROSSOVER_CONFIGS: dict[str, GAConfig] = {
+    "arithmetic": GAConfig(crossover="arithmetic"),
+    "blend_0.3":  GAConfig(crossover="blend", blend_alpha=0.3),
+    "blend_0.5":  GAConfig(crossover="blend", blend_alpha=0.5),
+    "blend_0.7":  GAConfig(crossover="blend", blend_alpha=0.7),
+}
+
+# 13. GA — Parent selection  (guideline e: ≥2 parent selection techniques)
+GA_SELECTION_CONFIGS: dict[str, GAConfig] = {
+    "tournament_k2": GAConfig(selection="tournament", tournament_size=2),
+    "tournament_k3": GAConfig(selection="tournament", tournament_size=3),
+    "tournament_k5": GAConfig(selection="tournament", tournament_size=5),
+    "roulette":      GAConfig(selection="roulette"),
+}
+
+# 14. GA — Survivor selection  (guideline f: ≥2 population management models)
+GA_REPLACEMENT_CONFIGS: dict[str, GAConfig] = {
+    "generational": GAConfig(replacement="generational", elite_count=1),
+    "elitist_mu+lambda": GAConfig(replacement="elitist"),
+}
+
+# ─────────────────────────────────────────────────────────────────────────────
 # Master list for the full experiment suite
 # ─────────────────────────────────────────────────────────────────────────────
 ALL_SUITES = {
-    # ── original suites ───────────────────────────────────────────────────────
+    # ── PSO suites ────────────────────────────────────────────────────────────
     "swarm_size":        SWARM_SIZE_CONFIGS,
     "inertia_weight":    INERTIA_CONFIGS,
     "c1_c2":             C1C2_CONFIGS,
-    "topology":          TOPOLOGY_CONFIGS,          # parent selection
+    "topology":          TOPOLOGY_CONFIGS,           # PSO parent selection
     "init_strategy":     INIT_CONFIGS,
     "iterations_budget": ITER_CONFIGS,
-    # ── guideline e: variation operators ─────────────────────────────────────
-    "velocity_strategy": VELOCITY_STRATEGY_CONFIGS, # mutation
-    "crossover":         CROSSOVER_CONFIGS,          # recombination  ← NEW
-    # ── guideline f: survivor selection ──────────────────────────────────────
-    "survivor_selection": SURVIVOR_SELECTION_CONFIGS,  # ← renamed + NEW label
-    # ── guideline h: diversity preservation ──────────────────────────────────
-    "diversity":          DIVERSITY_CONFIGS,            # ← NEW
+    "velocity_strategy": VELOCITY_STRATEGY_CONFIGS,  # PSO mutation
+    "crossover":         CROSSOVER_CONFIGS,           # PSO recombination
+    "survivor_selection": SURVIVOR_SELECTION_CONFIGS, # PSO survivor selection
+    "diversity":          DIVERSITY_CONFIGS,           # PSO diversity
+    # ── GA suites ─────────────────────────────────────────────────────────────
+    "ga_mutation":    GA_MUTATION_CONFIGS,    # guideline e — mutation
+    "ga_crossover":   GA_CROSSOVER_CONFIGS,   # guideline e — recombination
+    "ga_selection":   GA_SELECTION_CONFIGS,   # guideline e — parent selection
+    "ga_replacement": GA_REPLACEMENT_CONFIGS, # guideline f — survivor selection
 }
+

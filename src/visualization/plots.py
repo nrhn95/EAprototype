@@ -23,14 +23,14 @@ def plot_convergence(convergence_curves, title="PSO Convergence", label=""):
     std    = curves.std(axis=0)
     iters  = np.arange(len(mean))
 
-    fig, ax = plt.subplots(figsize=(9, 5))
+    fig, ax = plt.subplots(figsize=(9, 5), constrained_layout=True)
     ax.plot(iters, mean, lw=2, label=label)
     ax.fill_between(iters, mean - std, mean + std, alpha=0.2)
     ax.set_title(title)
     ax.set_xlabel("Iteration")
     ax.set_ylabel("Average Delay")
-    ax.legend()
-    fig.tight_layout()
+    if label:
+        ax.legend()
     return fig
 
 
@@ -39,16 +39,17 @@ def plot_before_after(baseline, best_fitnesses):
     opt_mean = np.mean(best_fitnesses)
     opt_std  = np.std(best_fitnesses)
 
-    fig, ax = plt.subplots(figsize=(7, 5))
+    fig, ax = plt.subplots(figsize=(7, 5), constrained_layout=True)
     ax.bar(
-        ["Baseline", "PSO"],
+        ["Baseline", "Optimised"],
         [baseline, opt_mean],
         yerr=[0, opt_std],
         capsize=5,
+        color=["#64748B", "#2563EB"],
+        alpha=0.85,
     )
     ax.set_ylabel("Average Delay")
     ax.set_title("Before vs After Optimisation")
-    fig.tight_layout()
     return fig
 
 
@@ -57,18 +58,18 @@ def plot_parameter_study(results_dict, param_name):
     labels = list(results_dict.keys())
     data   = [results_dict[k] for k in labels]
 
-    fig, ax = plt.subplots(figsize=(7, 5))
+    fig, ax = plt.subplots(figsize=(7, 5), constrained_layout=True)
     ax.boxplot(data, labels=labels)
     ax.set_xlabel(param_name)
     ax.set_ylabel("Best Fitness")
     ax.set_title("Parameter Study: " + param_name)
-    fig.tight_layout()
     return fig
 
 
 def plot_topology_comparison(gbest_curves, lbest_curves):
 
-    fig, axes = plt.subplots(1, 2, figsize=(12, 5), sharey=True)
+    fig, axes = plt.subplots(1, 2, figsize=(12, 5), sharey=True,
+                             constrained_layout=True)
 
     for ax, curves, title in zip(
         axes,
@@ -86,7 +87,6 @@ def plot_topology_comparison(gbest_curves, lbest_curves):
         ax.set_xlabel("Iteration")
         ax.set_ylabel("Delay")
 
-    fig.tight_layout()
     return fig
 
 
@@ -102,15 +102,17 @@ def plot_signal_timing(best_solution, baseline_solution, n_intersections, n_phas
     y = np.arange(n_vars)
     h = 0.3
 
-    fig, ax = plt.subplots(figsize=(9, max(4, n_vars * 0.5)))
-    ax.barh(y + h / 2, best_solution[:n_vars],     h, label="Optimised")
-    ax.barh(y - h / 2, baseline_solution[:n_vars], h, label="Baseline")
+    fig, ax = plt.subplots(figsize=(9, max(4, n_vars * 0.5)),
+                           constrained_layout=True)
+    ax.barh(y + h / 2, best_solution[:n_vars],     h, label="Optimised",
+            color="#2563EB", alpha=0.85)
+    ax.barh(y - h / 2, baseline_solution[:n_vars], h, label="Baseline",
+            color="#64748B", alpha=0.75)
     ax.set_yticks(y)
     ax.set_yticklabels(labels)
     ax.set_xlabel("Green Time (s)")
     ax.set_title("Signal Timing Comparison")
     ax.legend()
-    fig.tight_layout()
     return fig
 
 
@@ -122,7 +124,8 @@ def plot_operator_comparison(results_dict, suite_name):
     labels  = list(results_dict.keys())
     colours = plt.rcParams["axes.prop_cycle"].by_key()["color"]
 
-    fig, (ax_conv, ax_box) = plt.subplots(1, 2, figsize=(14, 5))
+    fig, (ax_conv, ax_box) = plt.subplots(1, 2, figsize=(14, 5),
+                                           constrained_layout=True)
 
     for idx, label in enumerate(labels):
         runs   = results_dict[label]
@@ -158,8 +161,7 @@ def plot_operator_comparison(results_dict, suite_name):
     ax_box.tick_params(axis="x", rotation=15)
 
     fig.suptitle("Operator comparison: " + suite_name, fontsize=13,
-                 fontweight="bold", y=1.01)
-    fig.tight_layout()
+                 fontweight="bold")
     return fig
 
 
@@ -197,7 +199,8 @@ def plot_statistical_significance(results_dict, suite_name, alpha=0.05):
             _, p   = stats.ranksums(fits_i, fits_j)
             p_matrix[i, j] = p
 
-    fig, ax = plt.subplots(figsize=(max(6, n * 1.4), max(5, n * 1.2)))
+    fig, ax = plt.subplots(figsize=(max(6, n * 1.4), max(5, n * 1.2)),
+                           constrained_layout=True)
 
     # Colour: green if significant, red if not
     colours = np.where(p_matrix < alpha, p_matrix, np.nan)
@@ -232,5 +235,4 @@ def plot_statistical_significance(results_dict, suite_name, alpha=0.05):
         fontsize=10,
     )
 
-    fig.tight_layout()
     return fig
