@@ -73,13 +73,15 @@ class TrafficPSOApp(tk.Tk):
             font=("Arial", 16, "bold"),
         ).pack(anchor="center", pady=10)
 
-        body = ttk.PanedWindow(self, orient="horizontal")
+        # tk.PanedWindow (not ttk) supports minsize on each pane
+        body = tk.PanedWindow(self, orient="horizontal", bg=BG,
+                              sashrelief="raised", sashwidth=5)
         body.pack(fill="both", expand=True)
 
         left  = tk.Frame(body, bg=PANEL)
         right = tk.Frame(body, bg=BG)
-        body.add(left,  weight=0)
-        body.add(right, weight=1)
+        body.add(left,  minsize=310, stretch="always")
+        body.add(right, minsize=400, stretch="always")
 
         self._build_controls(left)
         self._build_tabs(right)
@@ -96,11 +98,16 @@ class TrafficPSOApp(tk.Tk):
         inner = tk.Frame(canvas, bg=PANEL)
         win   = canvas.create_window((0, 0), window=inner, anchor="nw")
 
-        def _resize(e):
+        def _on_inner_configure(e):
             canvas.configure(scrollregion=canvas.bbox("all"))
+
+        def _on_canvas_configure(e):
+            # Keep the inner frame exactly as wide as the canvas so widgets
+            # stretch edge-to-edge and never overflow into the plot area.
             canvas.itemconfig(win, width=e.width)
 
-        inner.bind("<Configure>", _resize)
+        inner.bind("<Configure>", _on_inner_configure)
+        canvas.bind("<Configure>", _on_canvas_configure)
 
         def _section(text):
             tk.Label(
@@ -110,18 +117,18 @@ class TrafficPSOApp(tk.Tk):
 
         def _row(name, var):
             f = tk.Frame(inner, bg=PANEL)
-            f.pack(pady=2, padx=12, anchor="w")
-            tk.Label(f, text=name, bg=PANEL, width=22, anchor="w").pack(side="left")
-            tk.Entry(f, textvariable=var, width=10).pack(side="left")
+            f.pack(pady=2, padx=12, fill="x")
+            tk.Label(f, text=name, bg=PANEL, anchor="w").pack(side="left", expand=True, fill="x")
+            tk.Entry(f, textvariable=var, width=9).pack(side="right")
 
         def _dropdown(name, var, choices):
             f = tk.Frame(inner, bg=PANEL)
-            f.pack(pady=2, padx=12, anchor="w")
-            tk.Label(f, text=name, bg=PANEL, width=22, anchor="w").pack(side="left")
+            f.pack(pady=2, padx=12, fill="x")
+            tk.Label(f, text=name, bg=PANEL, anchor="w").pack(side="left", expand=True, fill="x")
             ttk.Combobox(
                 f, textvariable=var, values=choices,
-                state="readonly", width=18,
-            ).pack(side="left")
+                state="readonly", width=16,
+            ).pack(side="right")
 
         # ── Network ──────────────────────────────────────────────────────────
         _section("Network")
@@ -242,9 +249,23 @@ class TrafficPSOApp(tk.Tk):
         self.tabs.add(self.t_timing, text="Timing")
 
         # Create a persistent live-convergence figure
-        self._live_fig, self._live_ax = plt.subplots(figsize=(9, 5))
+        # Use constrained_layout so labels/titles are never clipped
+        self._live_fig, self._live_ax = plt.subplots(
+            figsize=(8, 5), constrained_layout=True
+        )
         self._live_canvas = FigureCanvasTkAgg(self._live_fig, self.t_live)
-        self._live_canvas.get_tk_widget().pack(fill="both", expand=True)
+        live_widget = self._live_canvas.get_tk_widget()
+        live_widget.pack(fill="both", expand=True)
+
+        # Resize the figure whenever the tab frame changes size
+        def _resize_live(event):
+            dpi = self._live_fig.dpi
+            w_in = max(event.width  / dpi, 2)
+            h_in = max(event.height / dpi, 2)
+            self._live_fig.set_size_inches(w_in, h_in, forward=False)
+            self._live_canvas.draw_idle()
+
+        self.t_live.bind("<Configure>", _resize_live)
 
     # ─────────────────────────────────────────────────────────────────────────
     # Run logic
@@ -416,12 +437,29 @@ class TrafficPSOApp(tk.Tk):
         for w in frame.winfo_children():
             w.destroy()
 
+        # Apply constrained layout so nothing is clipped
+        try:
+            fig.set_constrained_layout(True)
+        except Exception:
+            fig.tight_layout()
+
         canvas = FigureCanvasTkAgg(fig, frame)
         canvas.draw()
-        canvas.get_tk_widget().pack(fill="both", expand=True)
+        widget = canvas.get_tk_widget()
+        widget.pack(fill="both", expand=True)
 
         toolbar = NavigationToolbar2Tk(canvas, frame)
         toolbar.update()
+
+        # Resize figure to match the frame whenever the frame is resized
+        def _on_resize(event, _fig=fig, _canvas=canvas):
+            dpi  = _fig.dpi
+            w_in = max(event.width  / dpi, 2)
+            h_in = max(event.height / dpi, 2)
+            _fig.set_size_inches(w_in, h_in, forward=False)
+            _canvas.draw_idle()
+
+        frame.bind("<Configure>", _on_resize)
 
         plt.close(fig)
 
